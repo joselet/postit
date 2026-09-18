@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ventanas flotantes</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    #addNoteBtn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+    }
+
+    .note-window {
+      position: absolute;
+      top: 100px;
+      left: 100px;
+      width: 300px;
+      height: 200px;
+      border: 1px solid #666;
+      background: #fff;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+      resize: both;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      z-index: 1;
+    }
+
+    .note-title {
+      background: #007bff;
+      color: white;
+      padding: 5px;
+      cursor: move;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .note-title-text {
+      flex-grow: 1;
+      padding: 0 5px;
+      /* cursor: text; */
+      white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: inline-block;
+    }
+    .note-title .buttons {
+      display: flex;
+      gap: 5px;
+    }
+
+    .note-title button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    .note-title button:hover {
+      background: rgba(255, 255, 255, 0.5);
+      /* border: 1px solid white; */
+    }
+
+    .note-title button.close {
+        background: rgb(255, 0, 0,0.8);
+    }
+    .note-title button.close:hover {
+        background: rgb(255, 0, 0,1);
+    }
+
+
+    .note-content {
+      flex-grow: 1;
+      padding: 5px;
+      overflow: none;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      border: none;
+      resize: none;
+      font-family: inherit;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="addNoteBtn">➕ Añadir nota</button>
+
+  <script>
+    let zIndexCounter = 2;
+
+    document.getElementById('addNoteBtn').addEventListener('click', () => {
+      createNoteWindow();
+    });
+
+    function createNoteWindow() {
+      const note = document.createElement('div');
+      note.classList.add('note-window');
+      note.style.top = Math.random() * 300 + 'px';
+      note.style.left = Math.random() * 300 + 'px';
+      note.style.zIndex = zIndexCounter++;
+
+      const titleBar = document.createElement('div');
+      titleBar.classList.add('note-title');
+      titleBar.innerHTML = `
+        <span>📝 </span><span class="note-title-text" contenteditable="true">Nota</span>
+        <div class="buttons">
+          <button class="maximize">🗖</button>
+          <button class="close">✖</button>
+        </div>
+      `;
+
+      const editableTitle = titleBar.querySelector('.note-title-text');
+
+      // Prevenir salto de línea con Enter
+      editableTitle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          editableTitle.blur();  // Opcional: salir del modo edición al pulsar Enter
+        }
+      });
+
+
+      const content = document.createElement('div');
+      content.classList.add('note-content');
+      content.innerHTML = `<textarea placeholder="Escribe tu anotación..."></textarea>`;
+
+      note.appendChild(titleBar);
+      note.appendChild(content);
+      document.body.appendChild(note);
+
+      makeDraggable(note, titleBar);
+      addWindowControls(note, titleBar);
+
+    }
+
+    function makeDraggable(win, handle) {
+      let offsetX, offsetY, isDragging = false;
+
+      handle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        win.style.zIndex = zIndexCounter++;
+        offsetX = e.clientX - win.getBoundingClientRect().left;
+        offsetY = e.clientY - win.getBoundingClientRect().top;
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      });
+
+      function onMouseMove(e) {
+        if (!isDragging) return;
+        win.style.left = e.clientX - offsetX + 'px';
+        win.style.top = e.clientY - offsetY + 'px';
+      }
+
+      function onMouseUp() {
+        isDragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
+    }
+
+    function addWindowControls(win, handle) {
+      const closeBtn = win.querySelector('.close');
+      const maximizeBtn = win.querySelector('.maximize');
+      let isMaximized = false;
+      let prevState = {};
+
+      closeBtn.addEventListener('click', () => {
+        win.remove();
+      });
+
+      maximizeBtn.addEventListener('click', () => {
+        if (!isMaximized) {
+          // guardar estado
+          prevState = {
+            top: win.style.top,
+            left: win.style.left,
+            width: win.style.width,
+            height: win.style.height
+          };
+          win.style.top = "0";
+          win.style.left = "0";
+          win.style.width = "100vw";
+          win.style.height = "100vh";
+          win.style.resize = "none";
+          isMaximized = true;
+          maximizeBtn.innerHTML = "🗗";
+        } else {
+          // restaurar estado
+          win.style.top = prevState.top;
+          win.style.left = prevState.left;
+          win.style.width = prevState.width;
+          win.style.height = prevState.height;
+          win.style.resize = "both";
+          isMaximized = false;
+          maximizeBtn.innerHTML = "🗖";
+        }
+      });
+    }
+  </script>
+</body>
+</html>
